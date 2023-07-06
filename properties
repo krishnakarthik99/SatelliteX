@@ -1,0 +1,3 @@
+CLOUDANT_URL = https://80adaedf-127d-4ef0-925b-4fd1c5ccb529-bluemix.cloudantnosqldb.appdomain.cloud
+CLOUDANT_APIKEY = hlaiPdLs7PoDiyfeGND4q88mubU39QF78VFYUUJjtaxC
+CLOUDANT_DATABASE = userdata
