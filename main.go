@@ -195,6 +195,78 @@ func userLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func searchDocumentByID(w http.ResponseWriter, r *http.Request) {
+	ID := r.URL.Query().Get("id")
+	service := connection("properties")
+	getDocumentOptions := service.NewGetDocumentOptions("userdata", ID)
+	documentResponse, _, err := service.GetDocument(getDocumentOptions)
+	if err != nil {
+		log.Printf("Document with ID %s not found", ID)
+		http.ServeFile(w, r, "error.html")
+	} else {
+		documentBytes, err := json.MarshalIndent(documentResponse, "", "  ")
+		if err != nil {
+			log.Printf("Failed to marshal document: %v", err)
+		} else {
+			t, _ := template.ParseFiles("roles.html")
+			t.Execute(w, string(documentBytes))
+		}
+		fmt.Printf("Document with ID %s found\n", ID)
+	}
+}
+
+// func printDocumentDetails(document *cloudantv1.Document) {
+// 	var method = "printDocumentDetails()"
+// 	log.Printf("Entered : %s method", method)
+// 	if document != nil {
+// 		documentBytes, err := json.MarshalIndent(document, "", "  ")
+// 		if err != nil {
+// 			log.Printf("Failed to marshal document: %v", err)
+// 			return
+// 		}
+// 		fmt.Println("Document details:")
+// 		fmt.Println(string(documentBytes))
+// 	} else {
+// 		fmt.Println("Document not found")
+// 	}
+// 	log.Printf("Exited : %s method", method)
+// }
+
+func deleteUserByID(w http.ResponseWriter, r *http.Request) {
+	ID := r.URL.Query().Get("id")
+	service := connection("properties")
+	databaseName := "userdata"
+	getDocumentOptions := service.NewGetDocumentOptions(databaseName, ID)
+	document, _, err := service.GetDocument(getDocumentOptions)
+	if err != nil {
+		fmt.Print("failed to search the document: ")
+		http.ServeFile(w, r, "error.html")
+	} else {
+		error := deleteDocument(service, databaseName, ID, *document.Rev)
+		if error != nil {
+			fmt.Printf("failed to delete user with ID %s: %v", ID, error)
+			http.ServeFile(w, r, "error.html")
+		} else {
+			log.Printf("User with ID %s deleted successfully", ID)
+			http.ServeFile(w, r, "success.html")
+		}
+	}
+
+}
+
+func deleteDocument(service *cloudantv1.CloudantV1, databaseName string, ID string, rev string) error {
+	var method = "deleteDocument()"
+	log.Printf("Entered : %s method", method)
+	deleteDocumentOptions := service.NewDeleteDocumentOptions(databaseName, ID)
+	deleteDocumentOptions.SetRev(rev)
+	_, _, err := service.DeleteDocument(deleteDocumentOptions)
+	if err != nil {
+		return err
+	}
+	log.Printf("Exited : %s method", method)
+	return nil
+}
+
 // func userDelete(w http.ResponseWriter, r *http.Request) {
 // 	fmt.Print("delete")
 // 	if r.Method == "GET" {
@@ -210,5 +282,7 @@ func main() {
 	http.HandleFunc("/signup", userSignup)
 	http.HandleFunc("/login", userLogin)
 	http.HandleFunc("/query", userQuery)
+	http.HandleFunc("/deleteuserbyid", deleteUserByID)
+	http.HandleFunc("/searchuser", searchDocumentByID)
 	fmt.Println(http.ListenAndServe(":8080", nil))
 }
